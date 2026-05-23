@@ -23,8 +23,6 @@ const userSchema = new mongoose.Schema(
     billingCycleStart: { type: Date, default: Date.now },
 
     // Razorpay subscription tracking
-    razorpayOrderId:      { type: String, default: "" },
-    razorpayPaymentId:    { type: String, default: "" },
     subscriptionActiveUntil: { type: Date, default: null },
   },
   { timestamps: true }

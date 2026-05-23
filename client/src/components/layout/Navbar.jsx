@@ -1,22 +1,25 @@
 import { Link, useNavigate } from "react-router-dom";
 import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/clerk-react";
+import { BrainCircuit, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BrainCircuit } from "lucide-react";
+import { usePricingModal } from "@/App";
 
 export default function Navbar() {
   const { isSignedIn, isLoaded } = useAuth();
   const navigate = useNavigate();
+  const { openPricing, userPlan } = usePricingModal();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
+
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 font-semibold text-lg">
           <BrainCircuit className="h-6 w-6 text-primary" />
           <span>AI Interview</span>
         </Link>
 
-        {/* Nav links — only when signed in */}
+        {/* Nav links */}
         {isSignedIn && (
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -35,6 +38,19 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           {!isLoaded ? null : isSignedIn ? (
             <>
+              {/* Show Upgrade only when not on enterprise */}
+              {userPlan !== "enterprise" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={openPricing}
+                  className="hidden sm:flex items-center gap-1.5 border-primary/40 text-primary hover:bg-primary/5"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {userPlan === "free" ? "Upgrade" : "Change plan"}
+                </Button>
+              )}
+
               <Button
                 variant="outline"
                 size="sm"
@@ -43,6 +59,7 @@ export default function Navbar() {
               >
                 Start Interview
               </Button>
+
               <UserButton afterSignOutUrl="/" />
             </>
           ) : (
