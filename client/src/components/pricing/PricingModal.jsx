@@ -308,7 +308,7 @@ export default function PricingModal({ isOpen, onClose, currentPlan = "free", on
                 <Field
                   label="Cardholder name"
                   id="card-name"
-                  placeholder="John Doe"
+                  placeholder="Your Name"
                   value={card.name}
                   onChange={(e) => setCard({ ...card, name: e.target.value })}
                   autoComplete="cc-name"

@@ -9,8 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 const schema = z.object({
   description: z
     .string()
-    .min(50, "Please enter at least 50 characters")
-    .max(5000, "Description too long"),
+    .min(10, "Please enter at least 10 characters")
+    .max(1000, "Description too long"),
 });
 
 export default function JobDescForm({ onSubmit, isLoading }) {
@@ -38,10 +38,10 @@ export default function JobDescForm({ onSubmit, isLoading }) {
             <p className="text-sm text-destructive">{errors.description.message}</p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Minimum 50 characters
+              Minimum 10 characters
             </p>
           )}
-          <span className="text-xs text-muted-foreground">{value.length} / 5000</span>
+          <span className="text-xs text-muted-foreground">{value.length} / 1000</span>
         </div>
       </div>
 

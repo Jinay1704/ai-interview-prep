@@ -110,7 +110,7 @@ export default function InterviewerAvatar({ question, questionIndex, total, onSp
       </div>
 
       <div className="text-center">
-        <p className="font-medium text-sm">Alex — AI Interviewer</p>
+        <p className="font-medium text-sm">Champak — AI Interviewer</p>
         <p className="text-xs text-muted-foreground">Senior Technical Recruiter</p>
       </div>
 
