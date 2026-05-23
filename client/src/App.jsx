@@ -1,3 +1,4 @@
+// client/src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import { Toaster } from "sonner";
@@ -13,9 +14,6 @@ import NotFound      from "@/pages/NotFound";
 import Navbar        from "@/components/layout/Navbar";
 import PricingModal  from "@/components/pricing/PricingModal";
 
-// ─── Pricing context ──────────────────────────────────────────────────────────
-// Any component in the tree can call usePricingModal() to open the modal or
-// read the current plan without prop-drilling.
 export const PricingContext = createContext({
   openPricing: () => {},
   userPlan: "free",
@@ -23,25 +21,22 @@ export const PricingContext = createContext({
 
 export const usePricingModal = () => useContext(PricingContext);
 
-// ─── Route guard ──────────────────────────────────────────────────────────────
 const ProtectedRoute = ({ children }) => {
   const { isSignedIn, isLoaded } = useAuth();
   if (!isLoaded) return null;
   return isSignedIn ? children : <Navigate to="/" replace />;
 };
 
-// ─── App root ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [pricingOpen, setPricingOpen] = useState(false);
-  const [userPlan, setUserPlan]       = useState("free"); // "free" | "pro" | "enterprise"
+  const [userPlan, setUserPlan]       = useState(() => localStorage.getItem("userPlan") || "free");
 
   const openPricing  = useCallback(() => setPricingOpen(true),  []);
   const closePricing = useCallback(() => setPricingOpen(false), []);
 
   const handleUpgrade = useCallback((planId) => {
     setUserPlan(planId);
-    // NOTE: No Razorpay / real payment. Plan is stored in React state only.
-    // When you are ready to persist, POST planId to /api/user/plan here.
+    localStorage.setItem("userPlan", planId);
   }, []);
 
   return (

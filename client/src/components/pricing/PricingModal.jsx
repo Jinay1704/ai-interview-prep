@@ -48,9 +48,9 @@ const PLANS = [
     bg: "from-violet-50 to-violet-50/30",
     ring: "border-violet-400",
     badge: "Best Value",
-    limits: { interviews: -1, questions: -1, resumes: -1, voice: true, priority: true },
+    limits: { interviews: 500, questions: -1, resumes: -1, voice: true, priority: true },
     features: [
-      { text: "Unlimited interviews", ok: true },
+      { text: "500 interviews", ok: true },
       { text: "Unlimited questions", ok: true },
       { text: "Unlimited resume analyses", ok: true },
       { text: "Voice interview mode", ok: true },

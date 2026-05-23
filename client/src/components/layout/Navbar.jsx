@@ -1,3 +1,4 @@
+// client/src/components/layout/Navbar.jsx
 import { Link, useNavigate } from "react-router-dom";
 import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/clerk-react";
 import { BrainCircuit, Sparkles } from "lucide-react";
@@ -38,18 +39,15 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           {!isLoaded ? null : isSignedIn ? (
             <>
-              {/* Show Upgrade only when not on enterprise */}
-              {userPlan !== "enterprise" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={openPricing}
-                  className="hidden sm:flex items-center gap-1.5 border-primary/40 text-primary hover:bg-primary/5"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  {userPlan === "free" ? "Upgrade" : "Change plan"}
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openPricing}
+                className="flex items-center gap-1.5 border-primary/40 text-primary hover:bg-primary/5 capitalize"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {userPlan === "free" || userPlan === "basic" ? "Upgrade" : `Plan: ${userPlan}`}
+              </Button>
 
               <Button
                 variant="outline"

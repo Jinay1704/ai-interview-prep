@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+// client/src/pages/InterviewPage.jsx
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Loader2, Mic, Keyboard, ChevronRight, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +18,6 @@ export default function InterviewPage() {
   const { interviewId } = useParams();
   const navigate        = useNavigate();
 
-  // ── Pull plan from context (no more hard-coded `const { canVoice } = true`) ─
   const { userPlan, openPricing } = usePricingModal();
   const canVoice = userPlan === "pro" || userPlan === "enterprise";
 
@@ -27,7 +27,7 @@ export default function InterviewPage() {
   const [transcript, setTranscript]         = useState("");
   const [humeEmotions, setHumeEmotions]     = useState([]);
   const [latestFeedback, setLatestFeedback] = useState(null);
-  const [answerMode, setAnswerMode]         = useState("text"); // default text; switch to voice if canVoice
+  const [answerMode, setAnswerMode]         = useState("text"); 
   const [avatarDoneSpeak, setAvatarDoneSpeak] = useState(false);
 
   const {
@@ -36,7 +36,6 @@ export default function InterviewPage() {
     submitAnswer, nextQuestion, completeInterview,
   } = useInterview(interview);
 
-  // Load interview + optionally hume token
   useEffect(() => {
     const load = async () => {
       try {
@@ -68,7 +67,6 @@ export default function InterviewPage() {
     load();
   }, [interviewId, navigate, canVoice]);
 
-  // Reset per question
   useEffect(() => {
     setTranscript("");
     setHumeEmotions([]);
@@ -83,15 +81,6 @@ export default function InterviewPage() {
     toast.info("Switched to text mode");
   }, []);
 
-  const handleSubmit = async () => {
-    if (!transcript.trim()) {
-      toast.warning(answerMode === "voice" ? "Please speak your answer first." : "Please type your answer first.");
-      return;
-    }
-    const feedback = await submitAnswer({ transcript, humeEmotions });
-    if (feedback) setLatestFeedback(feedback);
-  };
-
   const handleNext = () => {
     nextQuestion();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -100,6 +89,21 @@ export default function InterviewPage() {
   const handleComplete = async () => {
     const results = await completeInterview();
     if (results) navigate(`/interview/${interviewId}/results`);
+  };
+
+  const handleSubmit = async () => {
+    if (!transcript.trim()) {
+      toast.warning(answerMode === "voice" ? "Please speak your answer first." : "Please type your answer first.");
+      return;
+    }
+    const feedback = await submitAnswer({ transcript, humeEmotions });
+    if (feedback) {
+      if (isLast) {
+        handleComplete();
+      } else {
+        handleNext();
+      }
+    }
   };
 
   if (loading) return (
@@ -113,7 +117,6 @@ export default function InterviewPage() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      {/* Top bar */}
       <div className="bg-background border-b sticky top-0 z-10">
         <div className="container mx-auto px-4 h-14 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
@@ -134,12 +137,9 @@ export default function InterviewPage() {
         </div>
       </div>
 
-      {/* Main layout */}
       <div className="container mx-auto px-4 py-6 max-w-5xl">
         {!latestFeedback ? (
           <div className="grid md:grid-cols-2 gap-4 min-h-[520px]">
-
-            {/* LEFT — Interviewer */}
             <div className="bg-background rounded-xl border flex flex-col overflow-hidden">
               <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -155,7 +155,6 @@ export default function InterviewPage() {
               </div>
             </div>
 
-            {/* RIGHT — Answer */}
             <div className="bg-background rounded-xl border flex flex-col overflow-hidden">
               <div className="px-4 py-2.5 border-b bg-muted/30 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -163,7 +162,6 @@ export default function InterviewPage() {
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your answer</span>
                 </div>
 
-                {/* Mode toggle — only if user has voice access */}
                 {canVoice && (
                   <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted">
                     <button
@@ -193,7 +191,6 @@ export default function InterviewPage() {
               </div>
 
               <div className="flex-1 flex flex-col p-4 gap-4">
-                {/* Voice mode */}
                 {answerMode === "voice" && canVoice && (
                   <div className="flex-1 flex flex-col items-center justify-center">
                     <VoiceInterview
@@ -206,10 +203,8 @@ export default function InterviewPage() {
                   </div>
                 )}
 
-                {/* Text mode */}
                 {(answerMode === "text" || !canVoice) && (
                   <div className="flex-1 flex flex-col gap-3">
-                    {/* Upgrade nudge for free users */}
                     {!canVoice && (
                       <div className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
                         Voice mode is available on Pro and Enterprise plans.{" "}
@@ -230,7 +225,6 @@ export default function InterviewPage() {
                   </div>
                 )}
 
-                {/* Transcript preview in voice mode */}
                 {answerMode === "voice" && transcript && (
                   <div className="rounded-lg bg-muted/50 p-3 border border-border">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5">
@@ -240,7 +234,6 @@ export default function InterviewPage() {
                   </div>
                 )}
 
-                {/* Submit */}
                 <Button
                   className="w-full"
                   size="lg"
@@ -257,7 +250,6 @@ export default function InterviewPage() {
             </div>
           </div>
         ) : (
-          /* Feedback view */
           <div className="max-w-2xl mx-auto space-y-5">
             <div className="flex items-center gap-2 text-green-600">
               <CheckCircle2 className="h-5 w-5" />

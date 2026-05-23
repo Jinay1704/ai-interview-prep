@@ -1,24 +1,19 @@
+// client/src/components/interview/InterviewerAvatar.jsx
 import { useEffect, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { cn } from "@/utils/helpers";
 
-/**
- * useSpeak — Web Speech API hook
- * Speaks text aloud using the browser's built-in TTS engine.
- * No API key needed — works in all modern browsers.
- */
 export const useSpeak = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const utteranceRef = useRef(null);
 
   const speak = (text, onEnd) => {
     if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel(); // stop any ongoing speech
+    window.speechSynthesis.cancel(); 
 
     const utterance = new SpeechSynthesisUtterance(text);
     utteranceRef.current = utterance;
 
-    // Pick a good voice — prefer a natural English voice
     const voices = window.speechSynthesis.getVoices();
     const preferred = voices.find(
       (v) =>
@@ -27,7 +22,7 @@ export const useSpeak = () => {
     ) ?? voices.find((v) => v.lang.startsWith("en")) ?? voices[0];
 
     if (preferred) utterance.voice = preferred;
-    utterance.rate   = 0.92;   // slightly slower — interviewer pacing
+    utterance.rate   = 0.92;   
     utterance.pitch  = 1.0;
     utterance.volume = 1.0;
 
@@ -43,7 +38,6 @@ export const useSpeak = () => {
     setIsSpeaking(false);
   };
 
-  // Voices load async in Chrome — wait for them
   useEffect(() => {
     if (window.speechSynthesis && window.speechSynthesis.onvoiceschanged !== undefined) {
       window.speechSynthesis.onvoiceschanged = () => {};
@@ -53,28 +47,14 @@ export const useSpeak = () => {
   return { speak, stop, isSpeaking };
 };
 
-/**
- * InterviewerAvatar
- * Shows a pulsing avatar that speaks the current question aloud.
- * Props:
- *   question      — { text, difficulty, category }
- *   questionIndex — 0-based current index
- *   total         — total questions count
- *   onSpeakEnd    — called when the question finishes speaking
- */
 export default function InterviewerAvatar({ question, questionIndex, total, onSpeakEnd }) {
   const { speak, stop, isSpeaking } = useSpeak();
   const [hasSpoken, setHasSpoken]   = useState(false);
-  const lastTextRef = useRef("");
 
-  // Auto-speak whenever the question changes
   useEffect(() => {
     if (!question?.text) return;
-    if (question.text === lastTextRef.current) return; // already spoken this one
-    lastTextRef.current = question.text;
     setHasSpoken(false);
 
-    // Small delay so the UI settles before speaking
     const timer = setTimeout(() => {
       speak(question.text, () => {
         setHasSpoken(true);
@@ -83,7 +63,7 @@ export default function InterviewerAvatar({ question, questionIndex, total, onSp
     }, 600);
 
     return () => { clearTimeout(timer); stop(); };
-  }, [question?.text]);
+  }, [question?.text, questionIndex]);
 
   const handleReplay = () => {
     if (!question?.text) return;
@@ -93,9 +73,7 @@ export default function InterviewerAvatar({ question, questionIndex, total, onSp
 
   return (
     <div className="flex flex-col items-center gap-5 h-full justify-center px-4">
-      {/* Avatar circle with speaking ring */}
       <div className="relative flex items-center justify-center">
-        {/* Outer pulse ring — shows while speaking */}
         {isSpeaking && (
           <>
             <span className="absolute inline-flex h-36 w-36 rounded-full bg-blue-100 opacity-60 animate-ping" />
@@ -103,7 +81,6 @@ export default function InterviewerAvatar({ question, questionIndex, total, onSp
           </>
         )}
 
-        {/* Avatar */}
         <div
           className={cn(
             "relative w-28 h-28 rounded-full flex items-center justify-center text-3xl font-semibold transition-all duration-300",
@@ -114,7 +91,6 @@ export default function InterviewerAvatar({ question, questionIndex, total, onSp
         >
           AI
 
-          {/* Speaking wave bars inside avatar bottom */}
           {isSpeaking && (
             <div className="absolute bottom-2 flex items-end gap-0.5">
               {[4, 8, 12, 8, 4].map((h, i) => (
@@ -133,15 +109,12 @@ export default function InterviewerAvatar({ question, questionIndex, total, onSp
         </div>
       </div>
 
-      {/* Name + title */}
       <div className="text-center">
         <p className="font-medium text-sm">Alex — AI Interviewer</p>
         <p className="text-xs text-muted-foreground">Senior Technical Recruiter</p>
       </div>
 
-      {/* Question display below avatar */}
       <div className="w-full rounded-xl border bg-muted/40 p-4 space-y-3">
-        {/* Status chip */}
         <div className="flex items-center justify-between">
           <span
             className={cn(
@@ -173,12 +146,10 @@ export default function InterviewerAvatar({ question, questionIndex, total, onSp
           </span>
         </div>
 
-        {/* Question text */}
         <p className="text-sm leading-relaxed font-medium">
           {question?.text ?? "Loading question…"}
         </p>
 
-        {/* Badges row */}
         {question && (
           <div className="flex items-center gap-2 flex-wrap">
             {question.difficulty && (
@@ -202,7 +173,6 @@ export default function InterviewerAvatar({ question, questionIndex, total, onSp
         )}
       </div>
 
-      {/* Replay button */}
       <button
         onClick={handleReplay}
         disabled={isSpeaking}
@@ -212,7 +182,6 @@ export default function InterviewerAvatar({ question, questionIndex, total, onSp
         Replay question
       </button>
 
-      {/* CSS for wave bars */}
       <style>{`
         @keyframes waveBar {
           0%, 100% { transform: scaleY(0.5); opacity: 0.5; }
