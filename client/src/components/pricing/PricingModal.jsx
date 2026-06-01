@@ -24,7 +24,7 @@ const PLANS = [
   {
     id: "pro",
     name: "Pro",
-    price: 19,
+    price: 1499,
     icon: Shield,
     color: "#2563eb",
     bg: "from-blue-50 to-blue-50/30",
@@ -42,7 +42,7 @@ const PLANS = [
   {
     id: "enterprise",
     name: "Enterprise",
-    price: 49,
+    price: 3999,
     icon: Crown,
     color: "#7c3aed",
     bg: "from-violet-50 to-violet-50/30",
@@ -59,7 +59,6 @@ const PLANS = [
   },
 ];
 
-// ── Minimal input component ───────────────────────────────────────────────────
 function Field({ label, id, ...props }) {
   return (
     <div className="space-y-1.5">
@@ -75,7 +74,6 @@ function Field({ label, id, ...props }) {
   );
 }
 
-// ── Single plan card ──────────────────────────────────────────────────────────
 function PlanCard({ plan, isActive, isCurrent, onClick }) {
   const Icon = plan.icon;
   return (
@@ -100,7 +98,6 @@ function PlanCard({ plan, isActive, isCurrent, onClick }) {
         </span>
       )}
 
-      {/* Icon + name */}
       <div className="flex items-center gap-2.5 mb-4">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: plan.color + "1a" }}>
           <Icon className="h-4.5 w-4.5" style={{ color: plan.color }} size={18} />
@@ -111,18 +108,16 @@ function PlanCard({ plan, isActive, isCurrent, onClick }) {
         </div>
       </div>
 
-      {/* Price */}
       <div className="mb-4">
         {plan.price === 0 ? (
           <p className="text-2xl font-black text-foreground">Free</p>
         ) : (
           <p className="text-2xl font-black text-foreground">
-            ${plan.price}<span className="text-sm font-normal text-muted-foreground">/mo</span>
+            ₹{plan.price}<span className="text-sm font-normal text-muted-foreground">/mo</span>
           </p>
         )}
       </div>
 
-      {/* Features */}
       <ul className="space-y-2 flex-1">
         {plan.features.map((f, i) => (
           <li key={i} className="flex items-center gap-2 text-sm">
@@ -141,7 +136,6 @@ function PlanCard({ plan, isActive, isCurrent, onClick }) {
         ))}
       </ul>
 
-      {/* Select indicator */}
       {!isCurrent && (
         <div className={cn(
           "mt-4 w-full py-2 rounded-lg text-xs font-semibold text-center transition-colors",
@@ -158,11 +152,13 @@ function PlanCard({ plan, isActive, isCurrent, onClick }) {
   );
 }
 
-// ── Main modal ────────────────────────────────────────────────────────────────
 export default function PricingModal({ isOpen, onClose, currentPlan = "free", onUpgrade }) {
-  const [step, setStep]               = useState("plans");   // plans | pay | success
+  const [step, setStep]               = useState("plans");
   const [chosenId, setChosenId]       = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("card");
   const [card, setCard]               = useState({ name: "", number: "", expiry: "", cvc: "" });
+  const [upi, setUpi]                 = useState({ id: "" });
+  const [bank, setBank]               = useState({ name: "", account: "", ifsc: "" });
   const [errors, setErrors]           = useState({});
   const [processing, setProcessing]   = useState(false);
 
@@ -173,20 +169,31 @@ export default function PricingModal({ isOpen, onClose, currentPlan = "free", on
   const reset = () => {
     setStep("plans");
     setChosenId(null);
+    setPaymentMethod("card");
     setCard({ name: "", number: "", expiry: "", cvc: "" });
+    setUpi({ id: "" });
+    setBank({ name: "", account: "", ifsc: "" });
     setErrors({});
     setProcessing(false);
   };
 
   const handleClose = () => { reset(); onClose(); };
 
-  // ── validation (accepts ANY dummy values as long as fields are filled) ──────
   const validate = () => {
     const e = {};
-    if (!card.name.trim())   e.name   = "Name is required";
-    if (card.number.replace(/\s/g, "").length < 8) e.number = "Enter a valid card number";
-    if (!card.expiry.trim()) e.expiry = "Expiry is required";
-    if (card.cvc.length < 3) e.cvc   = "CVC must be at least 3 digits";
+    if (paymentMethod === "card") {
+      if (!card.name.trim())   e.name   = "Name is required";
+      if (card.number.replace(/\s/g, "").length < 8) e.number = "Enter a valid card number";
+      if (!card.expiry.trim()) e.expiry = "Expiry is required";
+      if (card.cvc.length < 3) e.cvc   = "CVC must be at least 3 digits";
+    } else if (paymentMethod === "upi") {
+      if (!upi.id.trim()) e.upi = "UPI ID is required";
+    } else if (paymentMethod === "bank") {
+      if (!bank.name.trim()) e.bankName = "Account name is required";
+      if (!bank.account.trim()) e.bankAccount = "Account number is required";
+      if (!bank.ifsc.trim()) e.bankIfsc = "IFSC code is required";
+    }
+    
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -202,7 +209,6 @@ export default function PricingModal({ isOpen, onClose, currentPlan = "free", on
   const handlePay = async () => {
     if (!validate()) return;
     setProcessing(true);
-    // Simulate processing delay — no real payment
     await new Promise((r) => setTimeout(r, 1600));
     setProcessing(false);
     setStep("success");
@@ -211,13 +217,10 @@ export default function PricingModal({ isOpen, onClose, currentPlan = "free", on
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={handleClose} />
 
-      {/* Modal box */}
       <div className="relative w-full max-w-3xl bg-background rounded-3xl shadow-2xl border border-border overflow-hidden max-h-[92vh] flex flex-col">
 
-        {/* ── Header ─────────────────────────────────────────────────────────── */}
         <div className="px-7 py-6 border-b border-border flex items-center justify-between shrink-0">
           <div>
             {step === "plans" && (
@@ -233,7 +236,7 @@ export default function PricingModal({ isOpen, onClose, currentPlan = "free", on
               <>
                 <h2 className="text-xl font-black text-foreground">Payment details</h2>
                 <p className="text-muted-foreground text-sm">
-                  Upgrading to <span className="font-semibold" style={{ color: chosen?.color }}>{chosen?.name}</span> — ${chosen?.price}/mo
+                  Upgrading to <span className="font-semibold" style={{ color: chosen?.color }}>{chosen?.name}</span> — ₹{chosen?.price}/mo
                 </p>
               </>
             )}
@@ -246,10 +249,8 @@ export default function PricingModal({ isOpen, onClose, currentPlan = "free", on
           </button>
         </div>
 
-        {/* ── Body ───────────────────────────────────────────────────────────── */}
         <div className="overflow-y-auto flex-1 p-7">
 
-          {/* STEP 1 — Plan selection */}
           {step === "plans" && (
             <div className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -267,7 +268,14 @@ export default function PricingModal({ isOpen, onClose, currentPlan = "free", on
               {chosenId && chosenId !== currentPlan && (
                 <div className="flex justify-end pt-1">
                   <button
-                    onClick={() => setStep(chosen.price === 0 ? "success" : "pay")}
+                    onClick={() => {
+                      if (chosen.price === 0) {
+                        setStep("success");
+                        if (onUpgrade) onUpgrade(chosenId);
+                      } else {
+                        setStep("pay");
+                      }
+                    }}
                     className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
                     style={{ background: chosen.color }}
                   >
@@ -278,10 +286,8 @@ export default function PricingModal({ isOpen, onClose, currentPlan = "free", on
             </div>
           )}
 
-          {/* STEP 2 — Payment form */}
           {step === "pay" && chosen && (
             <div className="max-w-sm mx-auto space-y-5">
-              {/* Plan recap */}
               <div className={cn("rounded-2xl border-2 p-4 bg-gradient-to-b", chosen.bg, chosen.ring)}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -293,74 +299,137 @@ export default function PricingModal({ isOpen, onClose, currentPlan = "free", on
                       <p className="text-[11px] text-muted-foreground">Billed monthly · cancel anytime</p>
                     </div>
                   </div>
-                  <p className="text-xl font-black text-foreground">${chosen.price}<span className="text-xs font-normal text-muted-foreground">/mo</span></p>
+                  <p className="text-xl font-black text-foreground">₹{chosen.price}<span className="text-xs font-normal text-muted-foreground">/mo</span></p>
                 </div>
               </div>
 
-              {/* Demo notice */}
-              <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5">
-                <p className="text-xs font-semibold text-amber-800">Demo mode — no real charge</p>
-                <p className="text-[11px] text-amber-700 mt-0.5">Enter any dummy card details to upgrade.</p>
+              <div className="flex gap-2 p-1 bg-muted rounded-xl mb-4">
+                <button
+                  onClick={() => { setPaymentMethod("card"); setErrors({}); }}
+                  className={cn("flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors", paymentMethod === "card" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
+                >
+                  Card
+                </button>
+                <button
+                  onClick={() => { setPaymentMethod("upi"); setErrors({}); }}
+                  className={cn("flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors", paymentMethod === "upi" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
+                >
+                  UPI
+                </button>
+                <button
+                  onClick={() => { setPaymentMethod("bank"); setErrors({}); }}
+                  className={cn("flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors", paymentMethod === "bank" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
+                >
+                  Bank Transfer
+                </button>
               </div>
 
-              {/* Card form */}
-              <div className="space-y-3">
-                <Field
-                  label="Cardholder name"
-                  id="card-name"
-                  placeholder="Your Name"
-                  value={card.name}
-                  onChange={(e) => setCard({ ...card, name: e.target.value })}
-                  autoComplete="cc-name"
-                />
-                {errors.name && <p className="text-xs text-destructive -mt-1">{errors.name}</p>}
-
-                <div>
-                  <Field
-                    label="Card number"
-                    id="card-number"
-                    placeholder="1234 5678 9012 3456"
-                    value={card.number}
-                    onChange={(e) => setCard({ ...card, number: formatCardNumber(e.target.value) })}
-                    inputMode="numeric"
-                    autoComplete="cc-number"
-                    maxLength={19}
-                  />
-                  {errors.number && <p className="text-xs text-destructive mt-1">{errors.number}</p>}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
+              <div className="space-y-3 min-h-[220px]">
+                {paymentMethod === "card" && (
+                  <>
                     <Field
-                      label="Expiry (MM/YY)"
-                      id="card-expiry"
-                      placeholder="MM/YY"
-                      value={card.expiry}
-                      onChange={(e) => setCard({ ...card, expiry: formatExpiry(e.target.value) })}
-                      inputMode="numeric"
-                      autoComplete="cc-exp"
-                      maxLength={5}
+                      label="Cardholder name"
+                      id="card-name"
+                      placeholder="Your Name"
+                      value={card.name}
+                      onChange={(e) => setCard({ ...card, name: e.target.value })}
+                      autoComplete="cc-name"
                     />
-                    {errors.expiry && <p className="text-xs text-destructive mt-1">{errors.expiry}</p>}
-                  </div>
-                  <div>
+                    {errors.name && <p className="text-xs text-destructive -mt-1">{errors.name}</p>}
+
+                    <div>
+                      <Field
+                        label="Card number"
+                        id="card-number"
+                        placeholder="1234 5678 9012 3456"
+                        value={card.number}
+                        onChange={(e) => setCard({ ...card, number: formatCardNumber(e.target.value) })}
+                        inputMode="numeric"
+                        autoComplete="cc-number"
+                        maxLength={19}
+                      />
+                      {errors.number && <p className="text-xs text-destructive mt-1">{errors.number}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Field
+                          label="Expiry (MM/YY)"
+                          id="card-expiry"
+                          placeholder="MM/YY"
+                          value={card.expiry}
+                          onChange={(e) => setCard({ ...card, expiry: formatExpiry(e.target.value) })}
+                          inputMode="numeric"
+                          autoComplete="cc-exp"
+                          maxLength={5}
+                        />
+                        {errors.expiry && <p className="text-xs text-destructive mt-1">{errors.expiry}</p>}
+                      </div>
+                      <div>
+                        <Field
+                          label="CVC"
+                          id="card-cvc"
+                          placeholder="123"
+                          value={card.cvc}
+                          onChange={(e) => setCard({ ...card, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                          inputMode="numeric"
+                          autoComplete="cc-csc"
+                          maxLength={4}
+                        />
+                        {errors.cvc && <p className="text-xs text-destructive mt-1">{errors.cvc}</p>}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {paymentMethod === "upi" && (
+                  <div className="pt-2">
                     <Field
-                      label="CVC"
-                      id="card-cvc"
-                      placeholder="123"
-                      value={card.cvc}
-                      onChange={(e) => setCard({ ...card, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) })}
-                      inputMode="numeric"
-                      autoComplete="cc-csc"
-                      maxLength={4}
+                      label="UPI ID"
+                      id="upi-id"
+                      placeholder="username@upi"
+                      value={upi.id}
+                      onChange={(e) => setUpi({ id: e.target.value })}
                     />
-                    {errors.cvc && <p className="text-xs text-destructive mt-1">{errors.cvc}</p>}
+                    {errors.upi && <p className="text-xs text-destructive mt-1">{errors.upi}</p>}
+                    <p className="text-xs text-muted-foreground mt-4 text-center">You will receive a payment request on your UPI app.</p>
                   </div>
-                </div>
+                )}
+
+                {paymentMethod === "bank" && (
+                  <>
+                    <Field
+                      label="Account Holder Name"
+                      id="bank-name"
+                      placeholder="Your Name"
+                      value={bank.name}
+                      onChange={(e) => setBank({ ...bank, name: e.target.value })}
+                    />
+                    {errors.bankName && <p className="text-xs text-destructive -mt-1">{errors.bankName}</p>}
+
+                    <Field
+                      label="Account Number"
+                      id="bank-account"
+                      placeholder="1234567890"
+                      value={bank.account}
+                      onChange={(e) => setBank({ ...bank, account: e.target.value })}
+                      inputMode="numeric"
+                    />
+                    {errors.bankAccount && <p className="text-xs text-destructive -mt-1">{errors.bankAccount}</p>}
+
+                    <Field
+                      label="IFSC Code"
+                      id="bank-ifsc"
+                      placeholder="ABCD0123456"
+                      value={bank.ifsc}
+                      onChange={(e) => setBank({ ...bank, ifsc: e.target.value })}
+                    />
+                    {errors.bankIfsc && <p className="text-xs text-destructive -mt-1">{errors.bankIfsc}</p>}
+                  </>
+                )}
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-3 pt-1">
+              <div className="flex gap-3 pt-4">
                 <button
                   onClick={() => setStep("plans")}
                   className="flex-1 py-2.5 rounded-xl border border-input text-sm font-medium hover:bg-muted transition-colors"
@@ -384,19 +453,18 @@ export default function PricingModal({ isOpen, onClose, currentPlan = "free", on
                   ) : (
                     <>
                       <Lock size={13} />
-                      Pay ${chosen.price}/mo
+                      Pay ₹{chosen.price}/mo
                     </>
                   )}
                 </button>
               </div>
 
-              <p className="text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
-                <CreditCard size={12} /> Secured · Demo environment
+              <p className="text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1 mt-4">
+                <CreditCard size={12} /> Secured Payment Process
               </p>
             </div>
           )}
 
-          {/* STEP 3 — Success */}
           {step === "success" && chosen && (
             <div className="text-center max-w-xs mx-auto py-4 space-y-5">
               <div

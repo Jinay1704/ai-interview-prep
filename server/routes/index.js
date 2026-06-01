@@ -6,6 +6,7 @@ import userRoutes from "./user.routes.js";
 import jobRoutes from "./job.routes.js";
 import interviewRoutes from "./interview.routes.js";
 import resumeRoutes from "./resume.routes.js";
+import streamRoutes from "./stream.routes.js";
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use("/user", userRoutes);
 router.use("/jobs", jobRoutes);
 router.use("/interviews", interviewRoutes);
 router.use("/resume", resumeRoutes);
+router.use("/stream", streamRoutes);
 
 export default router;
