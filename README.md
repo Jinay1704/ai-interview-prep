@@ -52,15 +52,6 @@ The platform aims to bridge the gap between theoretical preparation and real int
 
 ---
 
-## 🎥 Video Interviews (Planned)
-
-- Candidate webcam support
-- Video interview simulation
-- Face visibility tracking
-- Eye-contact analysis
-- Presence evaluation
-
----
 
 ## 📄 Resume Upload
 
@@ -128,24 +119,7 @@ Supports:
 
 ---
 
-# 🏗️ System Architecture
 
-```
-Client (React + Vite)
-        │
-        ▼
-Backend API (Express.js)
-        │
-        ▼
-MongoDB Atlas
-        │
-        ▼
-External Services
-├── Clerk
-├── Gemini AI
-├── Hume AI
-└── Stream
-```
 
 ---
 
@@ -195,13 +169,6 @@ Used for:
 
 ---
 
-### Stream
-
-Used for:
-
-- Real-time communication capabilities
-
----
 
 ## Authentication
 
@@ -215,35 +182,6 @@ Used for:
 
 ---
 
-# 📂 Project Structure
-
-```bash
-ai-interview-prep/
-│
-├── client/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── hooks/
-│   │   ├── services/
-│   │   ├── context/
-│   │   └── App.jsx
-│   │
-│   └── package.json
-│
-├── server/
-│   ├── config/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── models/
-│   ├── routes/
-│   ├── services/
-│   ├── app.js
-│   ├── index.js
-│   └── package.json
-│
-└── README.md
-```
 
 ---
 
