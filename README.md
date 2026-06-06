@@ -11,12 +11,7 @@ An AI-powered mock interview platform that helps candidates practice technical a
 ---
 
 ## 🚀 Live Demo
-
-### Frontend
-https://your-frontend-url.onrender.com
-
-### Backend
-https://your-backend-url.onrender.com
+https://ai-interview-prep-server.onrender.com
 
 ---
 
