@@ -410,13 +410,11 @@ This project follows several security practices:
 Planned improvements include:
 
 - Video interview mode
-- AI-generated interview reports
 - Facial expression analysis
 - Eye-contact tracking
 - Interview recording playback
 - Recruiter personality selection
 - Company-specific interview simulations
-- PDF performance reports
 - Leaderboards and analytics
 
 ---
