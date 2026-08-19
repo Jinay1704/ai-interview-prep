@@ -7,6 +7,11 @@ import router from "./routes/index.js";
 
 const app = express();
 
+// Trust the first proxy (Render, Heroku, Nginx etc.)
+// Without this, express-rate-limit can't read the real client IP
+// and throws: "The 'X-Forwarded-For' header is set"
+app.set("trust proxy", 1);
+
 // ── Security & logging ───────────────────────────────────────
 app.use(helmet());
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));

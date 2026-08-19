@@ -34,8 +34,19 @@ const callGemini = async (prompt, retries = 3) => {
       }
 
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-      const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      return JSON.parse(cleaned);
+
+      // Strip markdown fences if present
+      const fenceStripped = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+
+      // Extract the first JSON object { } or array [ ] from the response,
+      // so any preamble/postamble text from the model is safely ignored.
+      const jsonMatch = fenceStripped.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+      if (!jsonMatch) {
+        console.error("Gemini raw response (no JSON found):", fenceStripped.slice(0, 300));
+        throw new Error("Gemini did not return valid JSON. Raw: " + fenceStripped.slice(0, 200));
+      }
+
+      return JSON.parse(jsonMatch[1]);
 
     } catch (err) {
       clearTimeout(timer);
