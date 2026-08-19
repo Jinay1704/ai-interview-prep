@@ -1,40 +1,33 @@
-import { fetchAccessToken } from "hume";
+import fetch from "node-fetch";
+
+const HUME_API_KEY    = process.env.HUME_API_KEY;
+const HUME_SECRET_KEY = process.env.HUME_SECRET_KEY;
 
 /**
- * Fetch a short-lived Hume access token for the client.
- * The frontend uses this token to open a WebSocket voice session.
+ * Exchange Hume API credentials for a short-lived access token.
+ * The token is used by the browser's Hume SDK to open a WebSocket connection.
  */
-export const getHumeAccessToken = async () => {
-  const accessToken = await fetchAccessToken({
-    apiKey: process.env.HUME_API_KEY,
-    secretKey: process.env.HUME_SECRET_KEY,
+export async function getHumeAccessToken() {
+  if (!HUME_API_KEY || !HUME_SECRET_KEY) {
+    throw new Error("HUME_API_KEY and HUME_SECRET_KEY must be set in environment variables.");
+  }
+
+  const credentials = Buffer.from(`${HUME_API_KEY}:${HUME_SECRET_KEY}`).toString("base64");
+
+  const response = await fetch("https://api.hume.ai/oauth2-cc/token", {
+    method: "POST",
+    headers: {
+      "Content-Type":  "application/x-www-form-urlencoded",
+      "Authorization": `Basic ${credentials}`,
+    },
+    body: new URLSearchParams({ grant_type: "client_credentials" }),
   });
 
-  if (!accessToken) {
-    throw new Error("Failed to fetch Hume access token — check HUME_API_KEY and HUME_SECRET_KEY in .env");
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Hume token request failed (${response.status}): ${text}`);
   }
 
-  return accessToken;
-};
-
-/**
- * Parse Hume emotion prosody data from a completed voice message.
- * Returns the top N emotions sorted by score.
- */
-export const parseHumeEmotions = (humeMessage, topN = 5) => {
-  try {
-    const emotions =
-      humeMessage?.models?.prosody?.grouped_predictions?.[0]
-        ?.predictions?.[0]?.emotions ?? [];
-
-    return emotions
-      .sort((a, b) => b.score - a.score)
-      .slice(0, topN)
-      .map(({ name, score }) => ({
-        name,
-        score: Math.round(score * 100) / 100,
-      }));
-  } catch {
-    return [];
-  }
-};
+  const data = await response.json();
+  return data.access_token;
+}

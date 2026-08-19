@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { SignUpButton, useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@/hooks/useAuth";
 import { BrainCircuit, Mic, FileText, BarChart3, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,11 +10,6 @@ const features = [
     icon: <BrainCircuit className="h-6 w-6 text-primary" />,
     title: "AI-Generated Questions",
     desc: "Paste any job description and Gemini AI generates tailored interview questions at your chosen difficulty.",
-  },
-  {
-    icon: <Mic className="h-6 w-6 text-primary" />,
-    title: "Voice Interview with Hume AI",
-    desc: "Speak your answers naturally. Hume AI analyses your voice for emotion, confidence and delivery.",
   },
   {
     icon: <FileText className="h-6 w-6 text-primary" />,
@@ -39,7 +34,7 @@ export default function LandingPage() {
         <section className="container mx-auto px-4 py-24 text-center space-y-8 max-w-3xl">
           <div className="inline-flex items-center gap-2 rounded-full border bg-muted px-4 py-1.5 text-sm text-muted-foreground">
             <BrainCircuit className="h-4 w-4" />
-            Powered by Gemini AI &amp; Hume AI
+            Powered by Gemini AI
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-tight">
@@ -48,8 +43,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Paste a job description, practise with a voice AI interviewer, get real-time
-            emotion analysis and actionable feedback — all in minutes.
+            Upload your resume, practise with an AI interviewer, and get actionable feedback — all in minutes.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -58,13 +52,11 @@ export default function LandingPage() {
                 Start Interview <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             ) : (
-              <SignUpButton mode="modal">
-                <Button size="lg">
-                  Get started free <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </SignUpButton>
+              <Button size="lg" onClick={() => navigate("/login")}>
+                Get started free <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
             )}
-            <Button size="lg" variant="outline" onClick={() => navigate("/resume")}>
+            <Button size="lg" variant="outline" onClick={() => navigate(isSignedIn ? "/resume" : "/login")}>
               Analyse my resume
             </Button>
           </div>

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/clerkAuth.js";
+import { requireAuth } from "../middleware/auth.js";
 import { getMe, deleteMe } from "../controllers/user.controller.js";
 
 const router = Router();

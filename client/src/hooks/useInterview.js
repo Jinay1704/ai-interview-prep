@@ -35,7 +35,7 @@ export const useInterview = (interview) => {
         setIsSubmitting(false);
       }
     },
-    [currentQuestion, interview]
+    [currentQuestion, interview?._id]
   );
 
   const nextQuestion = useCallback(() => {

@@ -1,14 +1,31 @@
 // client/src/components/layout/Navbar.jsx
 import { Link, useNavigate } from "react-router-dom";
-import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/clerk-react";
-import { BrainCircuit, Sparkles } from "lucide-react";
+import { BrainCircuit, Sparkles, LogOut, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { usePricingModal } from "@/App";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Navbar() {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded, user, signOut, displayName, avatarUrl } = useAuth();
   const navigate = useNavigate();
-  const { openPricing, userPlan } = usePricingModal();
+
+
+  const handleSignOut = () => {
+    signOut();
+    navigate("/");
+  };
+
+  const initials = displayName
+    ? displayName.split(" ").map((n) => n[0]).join("").toUpperCase().substring(0, 2)
+    : "U";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -39,15 +56,7 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           {!isLoaded ? null : isSignedIn ? (
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={openPricing}
-                className="flex items-center gap-1.5 border-primary/40 text-primary hover:bg-primary/5 capitalize"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                {userPlan === "free" || userPlan === "basic" ? "Upgrade" : `Plan: ${userPlan}`}
-              </Button>
+
 
               <Button
                 variant="outline"
@@ -58,16 +67,47 @@ export default function Navbar() {
                 Start Interview
               </Button>
 
-              <UserButton afterSignOutUrl="/" />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8 border">
+                      <AvatarImage src={avatarUrl} alt={displayName} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{displayName}</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user?.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                    <UserIcon className="mr-2 h-4 w-4" />
+                    <span>Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600 cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           ) : (
             <>
-              <SignInButton mode="modal">
-                <Button variant="ghost" size="sm">Sign in</Button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <Button size="sm">Get started</Button>
-              </SignUpButton>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>
+                Sign in
+              </Button>
+              <Button size="sm" onClick={() => navigate("/login")}>
+                Get started
+              </Button>
             </>
           )}
         </div>

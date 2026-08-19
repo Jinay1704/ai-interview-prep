@@ -1,10 +1,9 @@
 import api from "./api.js";
 
 export const resumeService = {
-  analyse: (file, jobId = "") => {
+  analyse: (file) => {
     const form = new FormData();
     form.append("file", file);
-    if (jobId) form.append("jobId", jobId);
     return api.post("/resume/analyse", form, {
       headers: { "Content-Type": "multipart/form-data" },
     }).then((r) => r.data.data);
@@ -16,3 +15,4 @@ export const resumeService = {
 
   delete: (id) => api.delete(`/resume/${id}`).then((r) => r.data),
 };
+

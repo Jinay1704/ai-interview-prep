@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Loader2, ClipboardList, Trash2, ArrowRight, Trophy } from "lucide-react";
+import { Plus, Loader2, FileText, Trash2, ArrowRight, Trophy, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import JobCard from "@/components/job/JobCard";
-import { jobService } from "@/services/job.service";
 import { interviewService } from "@/services/interview.service";
+import { userService } from "@/services/user.service";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate, scoreColor, difficultyBadgeVariant } from "@/utils/helpers";
 
@@ -17,23 +16,24 @@ const STATUS_BADGE = {
   completed: { label: "Completed",   variant: "success" },
 };
 
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { displayName } = useAuth();
-  const [jobs, setJobs]             = useState([]);
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+  const [userData, setUserData]     = useState(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [j, iv] = await Promise.all([
-          jobService.getAll(),
+        const [iv, user] = await Promise.all([
           interviewService.getAll(),
+          userService.getMe(),
         ]);
-        setJobs(j);
         setInterviews(iv);
+        setUserData(user);
       } catch (err) {
         toast.error(err.message);
       } finally {
@@ -43,15 +43,6 @@ export default function Dashboard() {
     load();
   }, []);
 
-  const handleDeleteJob = async (jobId) => {
-    try {
-      await jobService.delete(jobId);
-      setJobs((prev) => prev.filter((j) => j.jobId !== jobId));
-      toast.success("Job deleted");
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
 
   const handleDeleteInterview = async (e, id) => {
     e.stopPropagation(); // prevent row click navigating
@@ -93,63 +84,46 @@ export default function Dashboard() {
       ).toFixed(1)
     : null;
 
+
   return (
     <div className="container mx-auto px-4 py-10 space-y-10">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold">
-            Welcome back{displayName ? `, ${displayName}` : ""} 👋
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold">
+              Welcome back{displayName ? `, ${displayName}` : ""} 👋
+            </h1>
+          </div>
+          <p className="text-muted-foreground text-sm">
             {completedCount} interview{completedCount !== 1 ? "s" : ""} completed
             {avgScore ? ` · avg score ${avgScore}/10` : ""}
           </p>
         </div>
-        <Button onClick={() => navigate("/jobs/new")}>
-          <Plus className="mr-2 h-4 w-4" /> New Interview
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button onClick={() => navigate("/jobs/new")}>
+            <Plus className="mr-2 h-4 w-4" /> New Interview
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
-      {interviews.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="rounded-lg bg-muted/50 p-4">
-            <p className="text-xs text-muted-foreground mb-1">Total interviews</p>
-            <p className="text-2xl font-semibold">{interviews.length}</p>
-          </div>
-          <div className="rounded-lg bg-muted/50 p-4">
-            <p className="text-xs text-muted-foreground mb-1">Completed</p>
-            <p className="text-2xl font-semibold">{completedCount}</p>
-          </div>
-          <div className="rounded-lg bg-muted/50 p-4">
-            <p className="text-xs text-muted-foreground mb-1">Avg score</p>
-            <p className={`text-2xl font-semibold ${avgScore ? scoreColor(parseFloat(avgScore)) : ""}`}>
-              {avgScore ?? "—"}
-            </p>
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-lg bg-muted/50 p-4">
+          <p className="text-xs text-muted-foreground mb-1">Total interviews</p>
+          <p className="text-2xl font-semibold">{interviews.length}</p>
         </div>
-      )}
-
-      {/* Jobs */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Your Jobs</h2>
-        {jobs.length === 0 ? (
-          <div className="text-center py-12 border rounded-lg bg-muted/20">
-            <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">No jobs yet. Create your first interview!</p>
-            <Button className="mt-4" onClick={() => navigate("/jobs/new")}>
-              <Plus className="mr-2 h-4 w-4" /> Create Job
-            </Button>
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {jobs.map((job) => (
-              <JobCard key={job._id} job={job} onDelete={handleDeleteJob} />
-            ))}
-          </div>
-        )}
-      </section>
+        <div className="rounded-lg bg-muted/50 p-4">
+          <p className="text-xs text-muted-foreground mb-1">Completed</p>
+          <p className="text-2xl font-semibold">{completedCount}</p>
+        </div>
+        <div className="rounded-lg bg-muted/50 p-4">
+          <p className="text-xs text-muted-foreground mb-1">Avg score</p>
+          <p className={`text-2xl font-semibold ${avgScore ? scoreColor(parseFloat(avgScore)) : ""}`}>
+            {avgScore ?? "—"}
+          </p>
+        </div>
+      </div>
 
       {/* Recent Interviews */}
       <section className="space-y-4">
@@ -157,9 +131,11 @@ export default function Dashboard() {
 
         {interviews.length === 0 ? (
           <div className="text-center py-10 border rounded-lg bg-muted/20">
+            <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
             <p className="text-muted-foreground text-sm">No interviews yet.</p>
-            <Button className="mt-3" size="sm" onClick={() => navigate("/jobs/new")}>
-              Start your first interview
+            <p className="text-muted-foreground text-xs mt-1">Upload a resume first, then start an interview.</p>
+            <Button className="mt-3" size="sm" onClick={() => navigate("/resume")}>
+              Go to Resume Hub
             </Button>
           </div>
         ) : (
@@ -178,7 +154,7 @@ export default function Dashboard() {
                     {/* Left — title + date */}
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">
-                        {iv.jobId?.title ?? "Interview"}
+                        {iv.resumeId?.fileName ?? iv.resumeId?.extractedRole ?? "Interview"}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {formatDate(iv.createdAt)}

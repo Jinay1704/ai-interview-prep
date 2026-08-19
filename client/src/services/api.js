@@ -5,23 +5,21 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Attach Clerk session token to every request
-api.interceptors.request.use(async (config) => {
-  try {
-    // window.__clerk__ is set by ClerkProvider
-    const token = await window.Clerk?.session?.getToken();
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-  } catch {
-    // Not signed in — proceed without token
-  }
+// Attach JWT token to every request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("jwt_token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    const message =
-      err.response?.data?.message || err.message || "Something went wrong";
+    // If 401, clear stale token
+    if (err.response?.status === 401) {
+      localStorage.removeItem("jwt_token");
+    }
+    const message = err.response?.data?.message || err.message || "Something went wrong";
     return Promise.reject(new Error(message));
   }
 );

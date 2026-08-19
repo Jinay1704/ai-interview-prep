@@ -1,31 +1,53 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { Interview } from "../models/Interview.model.js";
-import { Job } from "../models/Job.model.js";
+import { Resume } from "../models/Resume.model.js";
 import { getHumeAccessToken } from "../services/hume.service.js";
 import {
-  generateQuestions,
-  evaluateAnswer,
-  generateOverallFeedback,
+  generateQuestionsFromResume,
+  evaluateAnswersBulk,
 } from "../services/gemini.service.js";
 
 // POST /api/interviews
+// Body: { resumeId, difficulty, type }
 export const createInterview = asyncHandler(async (req, res) => {
-  const { jobId, difficulty } = req.body;
-  if (!jobId || !difficulty) {
-    return res.status(400).json(ApiResponse.error("jobId and difficulty are required"));
+  const { resumeId, difficulty, type = "technical" } = req.body;
+
+  if (!resumeId || !difficulty) {
+    return res.status(400).json(ApiResponse.error("resumeId and difficulty are required"));
   }
 
-  const job = await Job.findOne({ jobId, userId: req.dbUser._id });
-  if (!job) return res.status(404).json(ApiResponse.error("Job not found"));
+  // 1. Verify the resume belongs to this user
+  const resume = await Resume.findOne({ _id: resumeId, userId: req.dbUser._id });
+  if (!resume) {
+    return res.status(404).json(ApiResponse.error("Resume not found"));
+  }
 
-  const { questions } = await generateQuestions(job.title, job.skills, difficulty);
+  // 2. Build context chunks from parsedText directly
+  if (!resume.parsedText || resume.parsedText.trim().length < 50) {
+    return res
+      .status(400)
+      .json(ApiResponse.error("Resume has no stored text. Please re-upload your resume."));
+  }
 
+  const words = resume.parsedText.split(/\s+/).filter(Boolean);
+  const chunkSize = Math.ceil(words.length / 3);
+  const topChunks = [];
+  for (let i = 0; i < 3 && i * chunkSize < words.length; i++) {
+    topChunks.push(words.slice(i * chunkSize, (i + 1) * chunkSize).join(" "));
+  }
+
+  // 3. Generate questions grounded in top chunks
+  const { questions } = await generateQuestionsFromResume(topChunks, difficulty, type, 10);
+
+  // 4. Create interview document
   const interview = await Interview.create({
-    jobId: job._id,
-    userId: req.dbUser._id,
+    resumeId: resume._id,
+    userId:   req.dbUser._id,
     difficulty,
+    type,
     questions,
+    retrievedChunks: topChunks,
     status: "active",
   });
 
@@ -35,7 +57,7 @@ export const createInterview = asyncHandler(async (req, res) => {
 // GET /api/interviews
 export const getMyInterviews = asyncHandler(async (req, res) => {
   const interviews = await Interview.find({ userId: req.dbUser._id })
-    .populate("jobId", "title jobId")
+    .populate("resumeId", "fileName extractedRole matchScore")
     .sort({ createdAt: -1 });
   res.json(ApiResponse.success(interviews));
 });
@@ -45,7 +67,7 @@ export const getInterviewById = asyncHandler(async (req, res) => {
   const interview = await Interview.findOne({
     _id: req.params.id,
     userId: req.dbUser._id,
-  }).populate("jobId", "title jobId skills");
+  }).populate("resumeId", "fileName extractedRole matchScore");
 
   if (!interview) return res.status(404).json(ApiResponse.error("Interview not found"));
   res.json(ApiResponse.success(interview));
@@ -53,13 +75,12 @@ export const getInterviewById = asyncHandler(async (req, res) => {
 
 // POST /api/interviews/:id/answer
 export const submitAnswer = asyncHandler(async (req, res) => {
-  const { questionId, transcript, humeEmotions } = req.body;
+  const { questionId, transcript } = req.body;
 
   if (!transcript || !transcript.trim()) {
     return res.status(400).json(ApiResponse.error("Transcript is required"));
   }
 
-  // Fetch interview WITHOUT populate first
   const interview = await Interview.findOne({
     _id: req.params.id,
     userId: req.dbUser._id,
@@ -73,26 +94,13 @@ export const submitAnswer = asyncHandler(async (req, res) => {
   const question = interview.questions.id(questionId);
   if (!question) return res.status(404).json(ApiResponse.error("Question not found"));
 
-  // Fetch job separately to get title safely
-  const job = await Job.findById(interview.jobId).select("title");
-  const jobTitle = job?.title || "Software Engineer"; // safe fallback
-
-  const { feedback, score, strengths, improvements } = await evaluateAnswer(
-    question.text,
-    transcript.trim(),
-    jobTitle
-  );
-
   interview.answers.push({
     questionId,
     transcript: transcript.trim(),
-    humeEmotions: humeEmotions || [],
-    feedback,
-    score,
   });
   await interview.save();
 
-  res.json(ApiResponse.success({ feedback, score, strengths, improvements }));
+  res.json(ApiResponse.success(null, "Answer saved successfully"));
 });
 
 // POST /api/interviews/:id/complete
@@ -104,16 +112,33 @@ export const completeInterview = asyncHandler(async (req, res) => {
 
   if (!interview) return res.status(404).json(ApiResponse.error("Interview not found"));
 
-  // Fetch job separately
-  const job = await Job.findById(interview.jobId).select("title");
-  const jobTitle = job?.title || "Software Engineer";
+  // Build context string from resume
+  const resume = await Resume.findById(interview.resumeId).select("fileName extractedRole");
+  const context = resume?.extractedRole
+    ? `${resume.extractedRole} (from resume: ${resume.fileName})`
+    : resume?.fileName || "Software Engineer";
 
-  const { overallFeedback, overallScore, topStrengths, areasToImprove, recommendedResources } =
-    await generateOverallFeedback(
-      jobTitle,
-      interview.difficulty,
-      interview.answers
-    );
+  // Bulk evaluate all answers + overall feedback
+  const qnaList = interview.answers.map(ans => {
+    const q = interview.questions.id(ans.questionId);
+    return {
+      questionId: ans.questionId,
+      question: q ? q.text : "Unknown",
+      transcript: ans.transcript
+    };
+  });
+
+  const { evaluatedAnswers, overallFeedback, overallScore, topStrengths, areasToImprove, recommendedResources } =
+    await evaluateAnswersBulk(context, interview.difficulty, interview.type, qnaList);
+
+  // Update individual answers with feedback/scores
+  for (const evalAns of evaluatedAnswers) {
+    const dbAns = interview.answers.find(a => a.questionId.toString() === evalAns.questionId);
+    if (dbAns) {
+      dbAns.feedback = evalAns.feedback;
+      dbAns.score = evalAns.score;
+    }
+  }
 
   interview.overallFeedback = overallFeedback;
   interview.overallScore    = overallScore;
@@ -123,16 +148,10 @@ export const completeInterview = asyncHandler(async (req, res) => {
 
   res.json(
     ApiResponse.success(
-      { overallFeedback, overallScore, topStrengths, areasToImprove, recommendedResources },
+      { overallFeedback, overallScore, topStrengths, areasToImprove, recommendedResources, evaluatedAnswers },
       "Interview completed"
     )
   );
-});
-
-// GET /api/interviews/hume-token
-export const getHumeToken = asyncHandler(async (_req, res) => {
-  const accessToken = await getHumeAccessToken();
-  res.json(ApiResponse.success({ accessToken }));
 });
 
 // DELETE /api/interviews/:id
@@ -143,4 +162,11 @@ export const deleteInterview = asyncHandler(async (req, res) => {
   });
   if (!interview) return res.status(404).json(ApiResponse.error("Interview not found"));
   res.json(ApiResponse.success(null, "Interview deleted"));
+});
+
+// GET /api/interviews/hume-token
+// Returns a short-lived Hume AI access token for the browser SDK
+export const getHumeToken = asyncHandler(async (req, res) => {
+  const accessToken = await getHumeAccessToken();
+  res.json(ApiResponse.success({ accessToken }, "Hume token generated"));
 });

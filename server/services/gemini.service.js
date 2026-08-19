@@ -51,8 +51,8 @@ const callGemini = async (prompt, retries = 3) => {
   }
 };
 
-export const extractJobMeta          = (desc)                        => callGemini(prompts.extractJobMeta(desc));
-export const generateQuestions       = (title, skills, diff, n = 5) => callGemini(prompts.generateQuestions(title, skills, diff, n));
-export const evaluateAnswer          = (q, t, title)                 => callGemini(prompts.evaluateAnswer(q, t, title));
-export const generateOverallFeedback = (title, diff, ans)            => callGemini(prompts.overallFeedback(title, diff, ans));
-export const analyseResume           = (text, jd = "")               => callGemini(prompts.analyseResume(text, jd));
+export const extractJobMeta                = (desc)                              => callGemini(prompts.extractJobMeta(desc));
+export const generateQuestions             = (title, skills, diff, count)        => callGemini(prompts.generateQuestions(title, skills, diff, count));
+export const generateQuestionsFromResume   = (chunks, diff, type, count)         => callGemini(prompts.generateQuestionsFromResume(chunks, diff, type, count));
+export const evaluateAnswersBulk           = (context, diff, type, ans)          => callGemini(prompts.evaluateAnswersBulk(context, diff, type, ans));
+export const analyseResume                 = (text)                              => callGemini(prompts.analyseResume(text));
