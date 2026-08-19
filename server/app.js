@@ -14,7 +14,7 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 // ── CORS ─────────────────────────────────────────────────────
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://your-frontend.onrender.com"
+  "https://ai-interview-prep-server.onrender.com"
 ];
 
 app.use(cors({
