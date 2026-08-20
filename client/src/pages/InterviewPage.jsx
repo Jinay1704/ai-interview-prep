@@ -54,7 +54,7 @@ function VoiceInterviewInner({
 
   const handleStartListening = async () => {
     try {
-      await connect();
+      await connect({});
       setIsListening(true);
     } catch (err) {
       toast.error("Could not start voice: " + (err.message ?? "Unknown error"));
@@ -323,7 +323,7 @@ export default function InterviewPage() {
       {humeToken ? (
         <VoiceProvider
           auth={{ type: "accessToken", value: humeToken }}
-          configId={undefined}
+          sessionSettings={{ audio: true }}
         >
           <VoiceInterviewInner
             interview={interview}

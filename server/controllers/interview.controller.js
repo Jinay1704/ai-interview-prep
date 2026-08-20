@@ -7,6 +7,11 @@ import {
   generateQuestionsFromResume,
   evaluateAnswersBulk,
 } from "../services/gemini.service.js";
+import { getCache, setCache, delCache } from "../config/redis.js";
+
+// Cache interview list per user for 60 seconds.
+const INTERVIEWS_TTL = 60; // seconds
+const interviewsKey  = (userId) => `interviews:${userId}`;
 
 // POST /api/interviews
 // Body: { resumeId, difficulty, type }
@@ -51,14 +56,29 @@ export const createInterview = asyncHandler(async (req, res) => {
     status: "active",
   });
 
+  // ── Invalidate the user's cached interview list ──────────────────────────
+  await delCache(interviewsKey(req.dbUser._id));
+
   res.status(201).json(ApiResponse.success(interview, "Interview created"));
 });
 
 // GET /api/interviews
 export const getMyInterviews = asyncHandler(async (req, res) => {
+  const cacheKey = interviewsKey(req.dbUser._id);
+
+  // ── Redis cache look-up ──────────────────────────────────────────────────
+  const cached = await getCache(cacheKey);
+  if (cached) {
+    return res.json(ApiResponse.success(cached));
+  }
+
+  // ── Cache miss — query MongoDB ───────────────────────────────────────────
   const interviews = await Interview.find({ userId: req.dbUser._id })
     .populate("resumeId", "fileName extractedRole matchScore")
     .sort({ createdAt: -1 });
+
+  await setCache(cacheKey, interviews, INTERVIEWS_TTL);
+
   res.json(ApiResponse.success(interviews));
 });
 
@@ -146,6 +166,9 @@ export const completeInterview = asyncHandler(async (req, res) => {
   interview.completedAt     = new Date();
   await interview.save();
 
+  // ── Invalidate the cached interview list (status changed to "completed") ─
+  await delCache(interviewsKey(req.dbUser._id));
+
   res.json(
     ApiResponse.success(
       { overallFeedback, overallScore, topStrengths, areasToImprove, recommendedResources, evaluatedAnswers },
@@ -161,6 +184,10 @@ export const deleteInterview = asyncHandler(async (req, res) => {
     userId: req.dbUser._id,
   });
   if (!interview) return res.status(404).json(ApiResponse.error("Interview not found"));
+
+  // ── Invalidate the cached interview list ─────────────────────────────────
+  await delCache(interviewsKey(req.dbUser._id));
+
   res.json(ApiResponse.success(null, "Interview deleted"));
 });
 

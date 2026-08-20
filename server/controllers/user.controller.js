@@ -6,7 +6,7 @@ import { User } from "../models/User.model.js";
 export const getMe = asyncHandler(async (req, res) => {
   res.json(
     ApiResponse.success({
-      ...req.dbUser.toObject()
+      ...req.dbUser
     })
   );
 });

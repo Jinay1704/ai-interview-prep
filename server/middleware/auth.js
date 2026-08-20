@@ -1,6 +1,10 @@
 import jwt from "jsonwebtoken";
 import { User } from "../models/User.model.js";
 import { ApiResponse } from "../utils/apiResponse.js";
+import { getCache, setCache } from "../config/redis.js";
+
+// Cache authenticated users for 5 minutes to avoid hitting MongoDB on every request.
+const USER_CACHE_TTL = 5 * 60; // seconds
 
 export const requireAuth = async (req, res, next) => {
   try {
@@ -12,10 +16,22 @@ export const requireAuth = async (req, res, next) => {
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await User.findById(decoded.userId);
+    // ── Redis cache look-up ────────────────────────────────────────────────
+    const cacheKey = `user:${decoded.userId}`;
+    const cachedUser = await getCache(cacheKey);
+
+    if (cachedUser) {
+      req.dbUser = cachedUser;
+      return next();
+    }
+
+    // ── Cache miss — fetch from MongoDB and cache result ───────────────────
+    const user = await User.findById(decoded.userId).lean();
     if (!user) {
       return res.status(401).json(ApiResponse.error("User not found"));
     }
+
+    await setCache(cacheKey, user, USER_CACHE_TTL);
 
     req.dbUser = user;
     next();
